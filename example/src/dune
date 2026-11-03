@@ -1,0 +1,6 @@
+(library
+ (name ppx_deriver_kit_example)
+ (libraries base ppx_deriver_kit_example_runtime)
+ (preprocess
+  (pps ppx_box ppx_deriver_kit_example_ppx ppx_jane
+    -compare-require-explicit-locality)))

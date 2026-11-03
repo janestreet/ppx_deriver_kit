@@ -1,0 +1,4 @@
+(library
+ (name ppx_deriver_kit_example_runtime)
+ (libraries base)
+ (preprocess no_preprocessing))

@@ -1,0 +1,266 @@
+open! Base
+open Ppx_deriver_kit_example_runtime.Export
+
+module _ = struct
+  type t = .. [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: open type not supported
+|}]
+
+module _ = struct
+  type t = < x : int > [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: object type not supported
+|}]
+
+module _ = struct
+  type t = { x : < a : int > } [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: object type not supported
+|}]
+
+module _ = struct
+  type t [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: abstract type not supported
+|}]
+
+module _ = struct
+  type t = int -> string [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: arrow type not supported
+|}]
+
+let _ = [%count: int -> string]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: arrow type not supported
+|}]
+
+let _ = [%count: < x : int > ]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: object type not supported
+|}]
+
+let _ = [%count: [< `A of int & string ]]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: polymorphic variant with non-trivial intersection type
+       (multiple argument types accepted) not supported
+|}]
+
+let _ = [%count: [ [ `A ] | `B ]]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: inherited polymorphic variant from type that is not just a
+       name not supported
+|}]
+
+let _ = [%count: (int[@count.custom 2]) * (bool -> unit)]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: arrow type not supported
+|}]
+
+module _ = struct
+  type t = int as 'a [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: type alias not supported
+|}]
+
+module _ = struct
+  type t = [ `A of 'a ] as 'a [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: type alias not supported
+|}]
+
+let _ = [%count: 'a list]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: type variable not supported
+|}]
+
+let _ = [%count: 'a list * [ `A of 'b ]]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: type variable not supported
+|}]
+
+type foo =
+  | A
+  | B
+[@@deriving count]
+
+let _ = count_foo 1
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: The constant 1 has type int but an expression was expected of type foo
+|}]
+
+
+module _ = struct
+  type a =
+    | A
+    | B
+
+  let count_a (_ : a) = "not an int"
+  let _ = [%count: a]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: The value count_a has type a -> string
+       but an expression was expected of type a -> int
+       Type string is not compatible with type int
+|}]
+
+module _ = struct
+  type a =
+    | A
+    | B
+
+  let count_a (_ : string) = 0
+  let _ = [%count: a]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: The value count_a has type string -> int
+       but an expression was expected of type a -> int
+       Type string is not compatible with type a
+|}]
+
+module _ = struct
+  type u = unit
+
+  let _ = [%count: u]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: Unbound value count_u
+Hint:   Did you mean count_foo, count_int, count_ref or count_unit?
+|}]
+
+module _ = struct
+  type t =
+    | Leaf
+    | Node of (t[@count.custom count Leaf])
+  [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: Unbound value count
+|}]
+
+module _ = struct
+  type t = int -> (string[@count.custom 1]) [@@deriving count]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: arrow type not supported
+|}]
+
+let _ = [%count: [> `A | `B ]]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: open polymorphic variant not supported
+|}]
+
+module Shadowed = struct
+  type t = int [@@deriving count]
+
+  module Inner = struct
+    type nonrec t = { x : t } [@@deriving count]
+  end
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: The value count has type int -> int
+       but an expression was expected of type t -> int
+       Type int is not compatible with type t
+|}]
+
+let _ = [%count: 'a -> int]
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: ppx_count: arrow type not supported
+|}]
+
+module _ = struct
+  type t = int * string [@@deriving count ~unboxed]
+end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: Unused [~unboxed] flag: none of these types have an implicit unboxed version
+|}]
+
+module M : sig
+  type ('a : value_or_null) t [@@deriving count]
+end = struct
+  type ('a : value_or_null) t = { value : 'a } [@@deriving count]
+end
+
+let _ = (M.count : (int or_null -> int) -> int or_null M.t -> int)
+
+[%%expect {| |}]

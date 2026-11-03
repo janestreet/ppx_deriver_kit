@@ -1,0 +1,7 @@
+(library
+ (name ppx_deriver_kit_test)
+ (libraries base expect_test_helpers_base unboxed.float_u
+   ppx_deriver_kit_example ppx_deriver_kit_example_runtime)
+ (preprocess
+  (pps ppxlib.metaquot ppx_jane -compare-require-explicit-locality
+    ppx_deriver_kit_example_ppx)))

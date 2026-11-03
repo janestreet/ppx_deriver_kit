@@ -1,0 +1,6 @@
+(library
+ (name ppx_deriver_kit_example_ppx)
+ (kind ppx_rewriter)
+ (libraries base ppx_deriver_kit ppx_helpers ppxlib)
+ (preprocess
+  (pps ppxlib.metaquot)))
